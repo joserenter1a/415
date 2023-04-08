@@ -1,11 +1,8 @@
-
 /*
  * implementation for array-based generic stack
  */
-
-#include "adts/arraystack.h"
+#include "ADTs/arraystack.h"
 #include <stdlib.h>
-
 // this structure will contain the instance specific data
 typedef struct st_data {
     long capacity; //capacity of the array
@@ -13,79 +10,73 @@ typedef struct st_data {
     void **theArray; // double pointer of array
     void (*freeValue)(void *e); // free value function
 } StData;
-
 /*
  * local function - traverses stack, applying user-supplied function
  * to each element
  */
-
 static void purge(StData *std) {
     long i;
-
     for (i = 0L; i < std->next; i++)
         std->freeValue(std->theArray[i]);       /* free elem storage */
 }
-
 static void st_destroy(const Stack *st) {
-    StData *std = (StData *) st->self;
+    StData *std = (StData *)st->self;
     purge(std);
     free(std->theArray);
     free(std);
-    free((void*) st);
+    free((void *) st);
 }
-
 static void st_clear(const Stack *st) {
-    StData *std = (StData *) st->self;
+    StData *std = (StData *)st->self;
     purge(std);
+    free(std->theArray);
     std->next = 0L;
 }
-
 static bool st_push(const Stack *st, void *element) {
-    StData *std = (StData *) st->self;
-    bool status = (std->next < std-> capacity);
-
-    if(!status){
+    StData *std = (StData *)st->self;
+    bool status = (std->next < std->capacity);
+    if (!status)
+    {
         size_t nbytes = 2 * (std->capacity) * sizeof(void *);
         void **tmp = (void **)realloc(std->theArray, nbytes);
-        if (tmp != NULL){
+        if (tmp != NULL)
+        {
             status = true;
             std->theArray = tmp;
             std->capacity *= 2;
         }
     }
-    if (status){
+    if (status)
+    {
         std->theArray[std->next++] = element;
     }
     return status;
 }
-
 static bool st_pop(const Stack *st, void **element) {
-    StData *std = (StData *) st->self;
-    bool status = (std-> next > 0);
-
-    if (status){
-        *element = std->theArray[std->next-1];
+    StData *std = (StData *)st->self;
+    bool status = (std->next > 0);
+    if (status)
+    {
+        *element = std->theArray[--std->next];
     }
     return status;
 }
-
 static bool st_peek(const Stack *st, void **element) {
-    StData *std = (StData *) st->self;
-    bool status = (std-> next > 0);
-    if(status){
+    StData *std = (StData *)st->self;
+    bool status = (std->next > 0);
+    if (status)
+    {
         *element = std->theArray[std->next-1];
     }
     return status;
 }
-
 static long st_size(const Stack *st) {
-    StData *std = (StData *) st->self;
+    StData *std = (StData *)st->self;
     return std->next;
 }
-
 static bool st_isEmpty(const Stack *st) {
-    StData *std = (StData *) st->self;
-    return std->next == 0L;
+    StData *std = (StData *)st->self;
+    return (std->next == 0L);
 }
 /*
  * local function - duplicates array of void * pointers on the heap
@@ -94,20 +85,17 @@ static bool st_isEmpty(const Stack *st) {
  */
 static void **arrayDupl(StData *std) {
     void **tmp = NULL;
-
     if (std->next > 0L) {
         size_t nbytes = std->next * sizeof(void *); //because next is the capacity
         tmp = (void **)malloc(nbytes);
         if (tmp != NULL) {
             long i, j = 0L; //to 0
-
             for (i = std->next - 1; i >= 0L; i--) //going backwards
                 tmp[j++] = std->theArray[i];
         }
     }
     return tmp;
 }
-
 static void **st_toArray(const Stack *st, long *len) {
     StData *std = (StData *)st->self;
     void **tmp = arrayDupl(std);
@@ -115,12 +103,10 @@ static void **st_toArray(const Stack *st, long *len) {
         *len = std->next; //setting len address
     return tmp;
 }
-
 static const Iterator *st_itCreate(const Stack *st) {
     StData *std = (StData *)st->self;
     const Iterator *it = NULL;
     void **tmp = arrayDupl(std);
-
     if (tmp != NULL) {
         it = Iterator_create(std->next, tmp);
         if (it == NULL)
@@ -128,27 +114,21 @@ static const Iterator *st_itCreate(const Stack *st) {
     }
     return it;
 }
-
 static const Stack *st_create(const Stack *st);
-
 static Stack template = {
     NULL, st_create, st_destroy, st_clear, st_push, st_pop, st_peek, st_size,
     st_isEmpty, st_toArray, st_itCreate
 };
-
 /*
  * helper function to create a new Stack dispatch table
  */
 static const Stack *newStack(long capacity, void (*freeValue)(void *e)){
     Stack *st = (Stack *)malloc(sizeof(Stack));
-
     if (st != NULL) {
         StData *std = (StData *)malloc(sizeof(StData));
-
         if (std != NULL) {
             long cap;
             void **array = NULL;
-
             cap = (capacity <= 0L) ? DEFAULT_STACK_CAPACITY : capacity;
             array = (void **)malloc(cap * sizeof(void *));
             if (array != NULL) {
@@ -170,17 +150,13 @@ static const Stack *newStack(long capacity, void (*freeValue)(void *e)){
     }
     return st;
 }
- 
 static const Stack *st_create(const Stack *st) {
     StData *std = (StData *)st->self;
-
     return newStack(DEFAULT_STACK_CAPACITY, std->freeValue);
 }
-
 const Stack *ArrayStack(long capacity, void (*freeValue)(void *e)) {
     return newStack(capacity, freeValue);
 }
-
 const Stack *Stack_create(void (*freeValue)(void *e)) {
     return newStack(DEFAULT_STACK_CAPACITY, freeValue);
 }
