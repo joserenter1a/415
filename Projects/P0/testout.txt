@@ -1,0 +1,15 @@
+Test creation and destruction of a set ... success
+Test addition of a single value ... success
+Test addition of a duplicate value ... failure
+Test isEmpty() on an empty set ... success
+Test isEmpty() on a non-empty set ... failure
+Test contains() on an empty set ... success
+Test contains() on a non-empty set and value is present ... failure
+Test contains() on a non-empty set and value is not present ... success
+Test remove() on an empty set ... success
+Test remove() on a non-empty set and value is present ... failure
+Test remove() on a non-empty set and value is not present ... success
+Test size() on an empty set ... success
+Test size() on a non-empty set ... failure
+Test addition of multiple, unique values ... failure
+Test itCreate() ... failure
