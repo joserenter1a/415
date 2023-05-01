@@ -1,0 +1,3 @@
+echo sugma
+echo HEYOO
+ls
