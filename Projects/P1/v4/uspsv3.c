@@ -26,7 +26,6 @@ each child process to terminate
 #define MIN_QUANTUM 20
 #define MAX_QUANTUM 1000
 #define MS_PER_TICK 20
-#define SWITCHES 12
 
 typedef struct pcb 
 { 
@@ -43,27 +42,11 @@ PCB pcb_arr[MAX_PCBS]; // array of Process control blocks
 int pcount = 0;
 volatile int active_procs = 0;
 volatile int USR1_seen = 0;
-volatile int context = SWITCHES;
-
 pid_t curr_pid;
 const Queue *readyQueue = NULL;
 PCB *curr = NULL;
 int q_ticks;
 
-static long p1atol(char *s)
-{ 
-    long a;
-    for(a= 0l; *s >= '0' && *s <= '9'; s++)
-    {
-        a = 10 * a + (long)(*s - '0');
-    }
-    return a;
-}
-static void p1ltoa(long number, char *buf)
-{
-    char buf[25];
-    long n, i, neg;
-}
 // create a SIGUSR1 handler
 static void onusr1(UNUSED int sig)
 {
