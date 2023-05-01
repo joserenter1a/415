@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     char *fd = NULL;
     char *sp = NULL;
     char *program_name = *argv;
-    int wfd = 0;
+    int workload = 0;
     int n, opt;
 
     // Process environment variable USPS_QUANTUM_MSEC & CLI args to uspsv
@@ -68,13 +68,13 @@ int main(int argc, char **argv)
     fd = argv[optind];
     if(fd != NULL)
     {
-        if((wfd = open(fd, O_RDONLY)) == -1)
+        if((workload = open(fd, O_RDONLY)) == -1)
         {
             p1perror(2, fd); print_usage_exit(program_name);
         }
         else
         {
-            wfd = 0; // stdin
+            workload = 0; // stdin
         }
         
     }
@@ -86,9 +86,8 @@ int main(int argc, char **argv)
     // once workload file is open and we have quantum value
     // read workload file, parse command and args
     // fork a new process to exec the comand, storing its PID in our PCB struct
-    while( (n = p1getline(wfd, buf, MAX_BUFSIZ)) > 0)
+    while( (n = p1getline(workload, buf, MAX_BUFSIZ)) > 0)
     {
-        pid_t pid;
         char word[MAX_BUFSIZ];
         char *args[MAX_ARGS];
         PCB *p = pcb_arr+pcount;
@@ -104,27 +103,34 @@ int main(int argc, char **argv)
         {
             args[j++] = p1strdup(word);
         }
+        
         args[j] = NULL;
-        switch((pid = fork()))
+        pid_t pid = fork();
+
+        if(pid == -1) // error with fork
         {
-            case -1: p1putstr(2, "Error forking new process\n");
-                     break;
-            case 0: // child process
-                     execvp(args[0], args);
-                     p1putstr(2, "Child process: execvp error");
-                     p1putstr(2, buf);
-                     p1putstr(2, "\n");
-                     for(j = 0; args[j]!=NULL; j++)
-                     {
-                        free(args[j]);
-                     }
-                     _exit(-1); break;
-            default: // parent
-                     p->pid = pid;
-                     for(j = 0; args[j] != NULL; j++)
-                     {
-                        free(args[j]);
-                     }
+            p1putstr(2, "Error forking new process\n"); break;
+        } 
+
+        else if(pid == 0) // child process
+        {
+            execvp(args[0], args);
+            p1putstr(2, "Child process: execvp error");
+            p1putstr(2, buf);
+            p1putstr(2, "\n");
+            for(j = 0; args[j]!=NULL; j++)
+            {
+            free(args[j]);
+            }
+            _exit(-1); break;
+        } 
+        else // parent / default case
+        {
+            p->pid = pid;
+            for(j = 0; args[j] != NULL; j++)
+            {
+            free(args[j]);
+            }
         }
         pcount++;
     }
@@ -134,9 +140,9 @@ int main(int argc, char **argv)
         (void) wait(NULL); // waiting for child process to terminate
         active_procs --;
     }
-    if(wfd != 0)
+    if(workload != 0)
     {
-        close(wfd); return EXIT_SUCCESS;
+        close(workload); return EXIT_SUCCESS;
     }
 
 }

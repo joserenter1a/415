@@ -128,30 +128,31 @@ int main(int argc, char **argv)
         {
             args[j++] = p1strdup(word);
         }
-        args[j] = NULL;
-        switch((pid = fork()))
+        args[j] = NULL;        pid = fork();
+        if(pid == -1) // error with fork
         {
-            case -1: p1putstr(2, "Error forking new process\n");
-                     break;
-            case 0: // child process
-                    // this child is going to wait until it receives SIGUSR1
-                    while(!USR1_seen)
-                        (void)nanosleep(&ms20, NULL);
-                     execvp(args[0], args);
-                     p1putstr(2, "Child process: execvp error");
-                     p1putstr(2, buf);
-                     p1putstr(2, "\n");
-                     for(j = 0; args[j]!=NULL; j++)
-                     {
-                        free(args[j]);
-                     }
-                     _exit(-1); break;
-            default: // parent
-                     p->pid = pid;
-                     for(j = 0; args[j] != NULL; j++)
-                     {
-                        free(args[j]);
-                     }
+            p1putstr(2, "Error forking new process\n"); break;
+        } 
+
+        else if(pid == 0) // child process
+        {
+            execvp(args[0], args);
+            p1putstr(2, "Child process: execvp error");
+            p1putstr(2, buf);
+            p1putstr(2, "\n");
+            for(j = 0; args[j]!=NULL; j++)
+            {
+            free(args[j]);
+            }
+            _exit(-1); break;
+        } 
+        else // parent / default case
+        {
+            p->pid = pid;
+            for(j = 0; args[j] != NULL; j++)
+            {
+            free(args[j]);
+            }
         }
         pcount++;
     }
