@@ -1,0 +1,11 @@
+Jose Renteria
+jrenter3 951742079
+CS415 Project 1
+
+This is my own work, though I did receive help from Kart in office hours.
+I discussed an approach to V1 with Joseph Macalino,
+and also pulled some of the code examples from SYSC on signal handlers, as well
+as some code from a getopt tutorial from 212. 
+
+I am pretty confident in v1 and v2, as they compile and run with no memory leaks.
+But I struggled heavily in v3 and v4, and am less confident in those. 
