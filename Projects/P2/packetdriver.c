@@ -89,7 +89,7 @@ void *send_thread (void *args)
 	int res, nsends;
 	struct send_arg_t *argvec = (struct send_arg_t *) args;
 
-	for(;;)
+	while(1)
 	{
 		argvec->waiting_PDs->blockingRead(argvec->waiting_PDs, (void**) &message);
 		for(nsends = 0; nsends < SENDING_LIMIT; nsends++)
@@ -160,7 +160,7 @@ void *receive_thread(void *args)
 	initPD(curr_pd);
 	argvec->nw_device->registerPD(argvec->nw_device, curr_pd);
 	//infinite loop
-	for(;;)
+	while(1)
 	{
 		// wait to receive a packet
 		argvec->nw_device->awaitIncomingPacket(argvec->nw_device);
@@ -207,15 +207,14 @@ The logic works as follows
 
 */
 
-void init_packet_driver(NetworkDevice *nd, void *mem_start, unsigned long mem_length, FreePacketDescriptorStore **FPDS_ptr)
+void init_packet_driver(NetworkDevice *nw_device, void *mem_start, unsigned long mem_length, FreePacketDescriptorStore **FPDS_ptr)
 {
 	int i, sb_len, num_PD;
 	PacketDescriptor *PD;
 	FreePacketDescriptorStore *FPDS;
 
-	pthread_attr_t tattr;
-
-	// first we setup FPDS
+	pthread_attr_t attributes;
+	// setup the FPDS
 	FPDS = FreePacketDescriptorStore_create(mem_start, mem_length);
 	*FPDS_ptr = (FreePacketDescriptorStore *)FPDS;
 	num_PD = FPDS->size(FPDS);
@@ -247,18 +246,18 @@ void init_packet_driver(NetworkDevice *nd, void *mem_start, unsigned long mem_le
 
 	// Now we can set up the argument structs for thread usage
 	send_args.free_pds = FPDS;
-	send_args.nw_device = nd;
+	send_args.nw_device = nw_device;
 	send_args.waiting_PDs = waiting_PDs;
 	send_args.PD_receiver_pool = PD_receiver_pool;
 
 	receive_args.free_pds = FPDS;
-	receive_args.nw_device = nd;
+	receive_args.nw_device = nw_device;
 	receive_args.waiting_receives = waiting_receives;
 	receive_args.PD_receiver_pool = PD_receiver_pool;
 
-	// Now we can start the threads, at default priority
+	// start the threads
 	pthread_create(&sending_thread, NULL, &send_thread, (void *) &send_args);
-	pthread_create(&receiving_thread, &tattr, &receive_thread, (void *) &receive_args);
+	pthread_create(&receiving_thread, &attributes, &receive_thread, (void *) &receive_args);
 
 
 }
