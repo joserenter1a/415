@@ -2,8 +2,9 @@
 Author: Jose Renteria
 
 This is my own work, aside from header files & functionality 
-from Joe Sventek. I have cited a source that helped
-me understand the implementation
+from Joe Sventek. I also received help from Zane in office 
+hours. 
+I have cited a source that helped me understand the implementation
 
 Citations:
 The Bounded Buffer Problem - Neso Academy
