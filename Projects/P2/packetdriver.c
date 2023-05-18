@@ -1,6 +1,10 @@
 /*
 Author: Jose Renteria
 
+This is my own work, aside from header files & functionality 
+from Joe Sventek. I have cited a source that helped
+me understand the implementation
+
 Citations:
 The Bounded Buffer Problem - Neso Academy
 https://www.youtube.com/watch?v=Qx3P2wazwI0&t=611s
@@ -28,10 +32,13 @@ static BoundedBuffer *waiting_receives[MAX_PID+1];
 static pthread_t sending_thread;
 // receiving thread
 static pthread_t receiving_thread;
+static struct sender_t send_args;
+static struct receiver_t receive_args;
+
 
 // create sending and receiving structs that pass pointers to the data required by 
 // creating threads via void * pointer, this will allow us to create static data
-struct send_arg_t
+struct sender_t
 {
 	FreePacketDescriptorStore *free_pds;
 	NetworkDevice *nw_device;
@@ -39,16 +46,13 @@ struct send_arg_t
 	BoundedBuffer *PD_receiver_pool;
 };
 
-struct receive_arg_t
+struct receiver_t
 {
 	FreePacketDescriptorStore *free_pds;
 	NetworkDevice *nw_device;
 	BoundedBuffer **waiting_receives;
 	BoundedBuffer *PD_receiver_pool;
 };
-
-static struct send_arg_t send_args;
-static struct receive_arg_t receive_args;
 
 /*
 We need to be able to maintain the contents of the receiver pool, so 
@@ -60,16 +64,15 @@ we can create a helper function that helps us return a free packet descriptor
 		to the FreePacketDescriptorStore/
 		since free_pds is unbounded, executing nonblocking_put_packet should work
 */ 
-static int nonblocking_put_pd(BoundedBuffer *pool, FreePacketDescriptorStore *free_pds,
-							PacketDescriptor *packet_descriptor)
-			{
-				int res;
-				if(! (res = pool->nonblockingWrite(pool, packet_descriptor)))
-				{
-					res = free_pds->nonblockingPut(free_pds, packet_descriptor);
-				}
-				return res; 
-			}
+static int nonblocking_put_pd(BoundedBuffer *pool, FreePacketDescriptorStore *free_pds,PacketDescriptor *packet_descriptor)
+{
+	int res;
+	if(! (res = pool->nonblockingWrite(pool, packet_descriptor)))
+	{
+		res = free_pds->nonblockingPut(free_pds, packet_descriptor);
+	}
+	return res; 
+}
 
 /*
 We need a function to send threads, the logic works as follows:
@@ -86,8 +89,9 @@ We need a function to send threads, the logic works as follows:
 void *send_thread (void *args)
 {
 	PacketDescriptor *message = NULL;
+	struct sender_t *argvec = (struct sender_t *) args;
 	int res, nsends;
-	struct send_arg_t *argvec = (struct send_arg_t *) args;
+
 
 	while(1)
 	{
@@ -124,10 +128,10 @@ The logic works as follows:
 		free packet descriptor store
 */
 
-static int nonblocking_get_pd(BoundedBuffer *pool, FreePacketDescriptorStore *free_pds, PacketDescriptor **PD)
+static int nonblocking_get_pd(BoundedBuffer *bb_pool, FreePacketDescriptorStore *free_pds, PacketDescriptor **PD)
 {
 	int res;
-	if(! (res = pool->nonblockingRead(pool, (void**) PD)))
+	if(! (res = bb_pool->nonblockingRead(bb_pool, (void**) PD)))
 	{
 		res = free_pds->nonblockingGet(free_pds, PD);
 	}
@@ -145,15 +149,15 @@ this will help prevent congestion and packet loss during periods of high traffic
 
 void *receive_thread(void *args)
 {
-	struct receive_arg_t *argvec = (struct receive_arg_t *) args;
+	struct receiver_t *argvec = (struct receiver_t *) args;
 	PacketDescriptor *curr_pd, *full_pd;
 	PID p_pid;
 	
 	/*
 		Follow the pattern:
 			i. obtain
-			ii. init
-			iii. register
+			ii. initPD
+			iii. registerPD
 
 	*/
 	argvec->free_pds->blockingGet(argvec->free_pds, &curr_pd);
@@ -162,14 +166,14 @@ void *receive_thread(void *args)
 	//infinite loop
 	while(1)
 	{
-		// wait to receive a packet
+		// awawit incoming packet
 		argvec->nw_device->awaitIncomingPacket(argvec->nw_device);
-		// pd was filled
+		// pd filled
 		full_pd = curr_pd;
 		if(nonblocking_get_pd(argvec->PD_receiver_pool, argvec->free_pds, &curr_pd))
 		{
 			// success, obtained another packet descriptor
-			// now, init & regiseter
+			// now, init & register
 			initPD(curr_pd);
 			argvec->nw_device->registerPD(argvec->nw_device, curr_pd);
 			// we can now store our full packet descriptor in a buffer
@@ -178,24 +182,25 @@ void *receive_thread(void *args)
 			if(!argvec->waiting_receives[p_pid]->nonblockingWrite(argvec->waiting_receives[p_pid], (void *)full_pd))
 			{
 				// packet does not fit, must return to free packet descriptor store
-				DIAGNOSTICS("DRIVER => Application (%u) PD Store full, deleting data.\n", p_pid);
+				DIAGNOSTICS("DRIVER => Application (%u) PD Store full.\n", p_pid);
 				if(!nonblocking_put_pd(argvec->PD_receiver_pool, argvec->free_pds, full_pd))
 				{
 					DIAGNOSTICS("DRIVER =>  Error: Cannot return PD to store");
 				}
-				else
-				{
-					// could not get another PD, reuse our full PD
-					DIAGNOSTICS("DRIVER => No replacement PD, deleting data.\n");
-					curr_pd = full_pd;
-					initPD(curr_pd);
-					argvec->nw_device->registerPD(argvec->nw_device, curr_pd);
-				}
+
 			}
 			
 		}
-	}
-	return NULL;
+		else
+		{
+			// could not get another PD, reuse our full PD
+			DIAGNOSTICS("DRIVER => Failed to receive Packet for application.\n");
+			// obtain, initPD, register
+			curr_pd = full_pd;
+			initPD(curr_pd);
+			argvec->nw_device->registerPD(argvec->nw_device, curr_pd);
+		}
+	} return NULL;
 }
 
 /*
@@ -220,10 +225,10 @@ void init_packet_driver(NetworkDevice *nw_device, void *mem_start, unsigned long
 	num_PD = FPDS->size(FPDS);
 
 		/*
-			We can allow up to RECEIVER_BUF_SIZ packet descriptors to be queued for
-			each application. Reserve RECEIVER_POOL packet descriptors for the receiving
-			thread's free pool
-			rest used for queuing sends
+			Each application can queue up to RECEIVER_BUF_SIZ
+			However, we save enough space of size of the RECEIVER_POOL
+			for the free pool in our receiving thread
+			The rest is use to queue sends in sending thread
 		*/
 	sb_len = num_PD - RECEIVER_POOL- (MAX_PID + 1) * RECEIVED_BUF_SIZ;
 	DIAGNOSTICS("Driver: %d packet descriptors are in receiver pool\n", RECEIVER_POOL);
@@ -232,7 +237,7 @@ void init_packet_driver(NetworkDevice *nw_device, void *mem_start, unsigned long
 
 	// Build internal data structures
 	waiting_PDs = BoundedBuffer_create(sb_len);
-	for(i = 0; i<MAX_PID; i++)
+	for(i = 0; i< MAX_PID+1; i++)
 	{
 		waiting_receives[i] = BoundedBuffer_create(RECEIVED_BUF_SIZ);
 	}
@@ -258,8 +263,6 @@ void init_packet_driver(NetworkDevice *nw_device, void *mem_start, unsigned long
 	// start the threads
 	pthread_create(&sending_thread, NULL, &send_thread, (void *) &send_args);
 	pthread_create(&receiving_thread, &attributes, &receive_thread, (void *) &receive_args);
-
-
 }
 
 
@@ -271,7 +274,11 @@ void blocking_send_packet(PacketDescriptor *PD)
 
 void blocking_get_packet(PacketDescriptor **PD, PID pid)
 {
-	waiting_receives[pid]->blockingRead(waiting_receives[pid], (void **) PD);
+	void *tmp;
+
+	waiting_receives[pid]->blockingRead(waiting_receives[pid], &tmp);
+
+	*PD = (PacketDescriptor *)tmp;
 }
 
 // Non blocking routines for queuing IO reqs
