@@ -214,7 +214,7 @@ The logic works as follows
 
 void init_packet_driver(NetworkDevice *nw_device, void *mem_start, unsigned long mem_length, FreePacketDescriptorStore **FPDS_ptr)
 {
-	int i, sb_len, num_PD;
+	int i, num_PD;
 	PacketDescriptor *PD;
 	FreePacketDescriptorStore *FPDS;
 
@@ -230,13 +230,13 @@ void init_packet_driver(NetworkDevice *nw_device, void *mem_start, unsigned long
 			for the free pool in our receiving thread
 			The rest is use to queue sends in sending thread
 		*/
-	sb_len = num_PD - RECEIVER_POOL- (MAX_PID + 1) * RECEIVED_BUF_SIZ;
+
 	DIAGNOSTICS("Driver: %d packet descriptors are in receiver pool\n", RECEIVER_POOL);
 	DIAGNOSTICS("Driver: %d received packet descriptors can be queued for %d applications\n", RECEIVED_BUF_SIZ, MAX_PID+1);
-	DIAGNOSTICS("Driver: %d packet descriptors can be queued and sent", sb_len);
+	DIAGNOSTICS("Driver: %d packet descriptors can be queued and sent", (num_PD - RECEIVER_POOL- (MAX_PID + 1) * RECEIVED_BUF_SIZ));
 
 	// Build internal data structures
-	waiting_PDs = BoundedBuffer_create(sb_len);
+	waiting_PDs = BoundedBuffer_create((num_PD - RECEIVER_POOL- (MAX_PID + 1) * RECEIVED_BUF_SIZ));
 	for(i = 0; i< MAX_PID+1; i++)
 	{
 		waiting_receives[i] = BoundedBuffer_create(RECEIVED_BUF_SIZ);
@@ -262,6 +262,7 @@ void init_packet_driver(NetworkDevice *nw_device, void *mem_start, unsigned long
 
 	// start the threads
 	pthread_create(&sending_thread, NULL, &send_thread, (void *) &send_args);
+	pthread_attr_init(&attributes);
 	pthread_create(&receiving_thread, &attributes, &receive_thread, (void *) &receive_args);
 }
 
