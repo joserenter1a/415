@@ -6,6 +6,9 @@
 #include <pthread.h>
 
 #define UNUSED __attribute__((unused))
+#define PORT 19999
+#define SERVICE "DTS"
+
 
 #define USAGE "./dtsv1"
 
@@ -27,12 +30,10 @@ void *receiver()
     unsigned length;
     BXPService bxps;
     char *service;
-    unsigned short port;
-
     service = "DTS";
-    port = 19999;
 
-    assert(bxp_init(port, 0));
+
+    assert(bxp_init(PORT, 1));
     bxps = bxp_offer(service);
 
     if(bxps == NULL)
