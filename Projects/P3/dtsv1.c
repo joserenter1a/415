@@ -1,3 +1,13 @@
+/*
+Jose Renteria
+951742079
+
+This is my own work, apart from examples taken from the handout.
+I discussed some of the server response logic with Chance Curran.
+
+
+*/
+
 #include "bxp/bxp.h"
 #include <stdio.h>
 #include <string.h>
@@ -5,53 +15,68 @@
 #include <assert.h>
 #include <pthread.h>
 
+// Macros
 #define UNUSED __attribute__((unused))
 #define PORT 19999
 #define SERVICE "DTS"
 
+// Based on the 5.1.3 example in the P3 handout
+void *dtsv1()
+{
+    // Initialize BXP Endpoint and Service
+    BXPEndpoint send;
+    BXPService bxp_service;
 
-#define USAGE "./dtsv1"
+    char *server_query = (char *)malloc(BUFSIZ);
+    char *server_response = (char *)malloc(BUFSIZ + 1);
 
-void *receiver();
+    unsigned query_length, response_length;
+
+    // Initialize our BXP protocol, bound to our local Port
+    assert(bxp_init(PORT, 1));
+
+    // Offer our BXP Service
+    bxp_service = bxp_offer(SERVICE);
+
+    // If the service is null, exit and free
+    if(bxp_service == NULL)
+    {
+        fprintf(stderr, "Failure to initiailize service\n");
+        free(server_response);
+        free(server_query);
+        exit(EXIT_FAILURE);
+    }
+    do
+    {
+        // parse our query string
+        server_query[query_length] = '\0';
+        char command[1000];
+        strcpy(command, server_query);
+        sprintf(server_response, "1%s", command);
+        fprintf(stdout, "%s - Server Request Success\n", server_response);
+        response_length = strlen(server_response) + 1;
+        bxp_response(bxp_service, &send, server_response, response_length);
+    }   
+    while((query_length = bxp_query(bxp_service, &send, server_query, BUFSIZ)) > 0);
+
+    free(server_query);
+    free(server_response);
+    pthread_exit(NULL);
+}
 
 int main(UNUSED int argc, UNUSED char *argv[])
 {
+    // Create thread for our receiver
     pthread_t receiver_thread;
-    pthread_create(&receiver_thread, NULL, receiver, NULL);
+
+    // Ensure correct initialization of thread
+    if (pthread_create(&receiver_thread, NULL, dtsv1, NULL))
+    {
+        fprintf(stderr, "Failed to create thread\n");
+        return EXIT_FAILURE;
+    }
+
+    // Wait for thread to finish
     pthread_join(receiver_thread, NULL);
-    return 0;
-}
-
-void *receiver()
-{
-    BXPEndpoint send;
-    char *query = (char *)malloc(BUFSIZ);
-    char *response = (char *)malloc(BUFSIZ);
-    unsigned length;
-    BXPService bxps;
-    char *service;
-    service = "DTS";
-
-
-    assert(bxp_init(PORT, 1));
-    bxps = bxp_offer(service);
-
-    if(bxps == NULL)
-    {
-        fprintf(stderr, "Failure to initiailize service");
-        free(query);
-        free(response);
-        exit(EXIT_FAILURE);
-    }
-    while((length = bxp_query(bxps, &send, query, BUFSIZ)) > 0)
-    {
-        query[length] = '\0';
-        char command[1000];
-        strcpy(command, query);
-        sprintf(response, "1%s", command);
-        bxp_response(bxps, &send, response, strlen(response) + 1);
-    }
-    free(query);
-    free(response);
-    pthread_exit(NULL);
+    return EXIT_SUCCESS;
 }
