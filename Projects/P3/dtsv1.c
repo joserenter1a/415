@@ -27,17 +27,20 @@ void *dtsv1()
     BXPEndpoint send;
     BXPService bxp_service;
 
+    // malloc for our query and response
     char *server_query = (char *)malloc(BUFSIZ);
     char *server_response = (char *)malloc(BUFSIZ + 1);
 
+    // the lengths of our query and response
     unsigned query_length, response_length;
-
+    
     // Initialize our BXP protocol, bound to our local Port
     assert(bxp_init(PORT, 1));
 
     // Offer our BXP Service
     bxp_service = bxp_offer(SERVICE);
 
+    int K = 0;
     // If the service is null, exit and free
     if(bxp_service == NULL)
     {
@@ -48,15 +51,23 @@ void *dtsv1()
     }
     do
     {
-        // parse our query string
-        server_query[query_length] = '\0';
-        char command[1000];
-        strcpy(command, server_query);
-        sprintf(server_response, "1%s", command);
-        fprintf(stdout, "%s - Server Request Success\n", server_response);
-        response_length = strlen(server_response) + 1;
-        bxp_response(bxp_service, &send, server_response, response_length);
-    }   
+        K++;
+        if(K == 1)
+        {
+            fprintf(stdout, "%s - Server Connection Established\n", server_response);
+        }
+        else
+        {
+            // parse our query string
+            server_query[query_length] = '\0';
+            char command[1000];
+            strcpy(command, server_query);
+            sprintf(server_response, "1%s", command);
+            fprintf(stdout, "%s - Server Request Success\n", server_response);
+            response_length = strlen(server_response) + 1;
+            bxp_response(bxp_service, &send, server_response, response_length);
+        }
+}   
     while((query_length = bxp_query(bxp_service, &send, server_query, BUFSIZ)) > 0);
 
     free(server_query);

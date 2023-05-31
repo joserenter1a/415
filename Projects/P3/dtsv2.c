@@ -3,7 +3,6 @@ Jose Renteria
 951742079
 
 This is my own work, apart from examples taken from the handout.
-I discussed some of the server response logic with Chance Curran.
 
 
 */
@@ -20,6 +19,17 @@ I discussed some of the server response logic with Chance Curran.
 #define UNUSED __attribute__((unused))
 #define PORT 19999
 #define SERVICE "DTS"
+
+// This function was given in lab_7/cbserver.c
+int extractWords(char *buf, char *sep, char *words[]) {
+    int i;
+    char *p;
+
+    for (p = strtok(buf, sep), i = 0; p != NULL; p = strtok(NULL, sep), i++)
+        words[i] = p;
+    words[i] = NULL;
+    return i;
+}
 
 // Built on top of dtsv1
 void *dtsv2()
@@ -79,7 +89,7 @@ void *dtsv2()
                     fprintf(stdout, "%s - Server Request Success\n", server_response);
                     break;
                 default:
-                    sprintf(server_response, "0");
+                    sprintf(server_response, "0%s", server_query);
             }
             VALGRIND_MONITOR_COMMAND("leak_check summary");        
         }
@@ -99,7 +109,7 @@ void *dtsv2()
                     fprintf(stdout, "%s - Server Request Success\n", server_response);
                     break;
                 default:
-                    sprintf(server_response, "0");
+                    sprintf(server_response, "0%s", server_query);
             }
             VALGRIND_MONITOR_COMMAND("leak_check summary");
         }
@@ -121,13 +131,13 @@ void *dtsv2()
 
                     break;
                 default:
-                    sprintf(server_response, "0");
+                    sprintf(server_response, "0%s", server_query);
             }
             VALGRIND_MONITOR_COMMAND("leak_check summary");
         }
         else
         {
-            sprintf(server_response, "0");
+            sprintf(server_response, "0%s", server_query);
         }
         VALGRIND_MONITOR_COMMAND("leak_check summary");
         response_length = strlen(server_response) + 1;
