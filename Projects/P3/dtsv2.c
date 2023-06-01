@@ -86,7 +86,7 @@ void *dtsv2()
             {
                 case 7:
                     sprintf(server_response, "1%s", server_query);
-                    fprintf(stdout, "%s - Server Request Success\n", server_response);
+                    fprintf(stdout, "%s", server_response);
                     break;
                 default:
                     sprintf(server_response, "0%s", server_query);
@@ -106,7 +106,9 @@ void *dtsv2()
             {
                 case 7:
                     sprintf(server_response, "1%s", server_query);
-                    fprintf(stdout, "%s - Server Request Success\n", server_response);
+                    fprintf(stdout, "%s", server_response);
+
+                    // fprintf(stdout, "%s - Server Request Success\n", server_response);
                     break;
                 default:
                     sprintf(server_response, "0%s", server_query);
@@ -126,8 +128,10 @@ void *dtsv2()
             switch(N)
             {
                 case 2:
-                    sprintf(server_response, "1%s", server_query);
-                    fprintf(stdout, "%s - Server Request Success\n", server_response);
+                    sprintf(server_response, "1%s", server_query);                    fprintf(stdout, "%s", server_response);
+                    fprintf(stdout, "%s", server_response);
+
+                    // fprintf(stdout, "%s - Server Request Success\n", server_response);
 
                     break;
                 default:

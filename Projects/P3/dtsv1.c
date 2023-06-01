@@ -63,7 +63,7 @@ void *dtsv1()
             char command[1000];
             strcpy(command, server_query);
             sprintf(server_response, "1%s", command);
-            fprintf(stdout, "%s - Server Request Success\n", server_response);
+            // fprintf(stdout, "%s - Server Request Success\n", server_response);
             response_length = strlen(server_response) + 1;
             bxp_response(bxp_service, &send, server_response, response_length);
         }
