@@ -28,20 +28,7 @@ typedef struct strnode
 
 const UNUSED CSKMap *strheap;
 
-// hash function, taken from P0/stringtest.c
-#define A 31L
-long shash(void *x, long N) 
-{
-    int i;
-    long sum = 0L;
-    char *s = (char *)x;
-
-    for (i = 0; s[i] != '\0'; i++)
-        sum = A * sum + (long)s[i];
-    return sum % N;
-}
-
-// compare function for hashmap
+// compare function for hashmap, from P3/dtsv
 int map_compare_function(void *id1, void *id2)
 {
     unsigned long *s1 = (unsigned long *)id1;
@@ -55,6 +42,9 @@ int map_compare_function(void *id1, void *id2)
     return cmp;
 }
 
+// abstracted helper function that will
+// return a node after mallocing, incrementing
+// ref count, and initialising mutex
 StrNode *strnode_helper(const char *str)
 {
     StrNode *node = (StrNode*)malloc(sizeof(StrNode));
@@ -64,11 +54,13 @@ StrNode *strnode_helper(const char *str)
     return node;
 }
 
+// str malloc function that will call our helper 
+// and create our hashCSKmap
 char *str_malloc(char* str)
 {        
     char**res;
     // initialize the hashmap if not already
-    strheap = HashCSKMap(100, 4.0, NULL);
+    strheap = HashCSKMap(100, 4.0, free);
 
     if(strheap == NULL)
     {
