@@ -26,7 +26,7 @@ typedef struct strnode
 // define hashcsk map to be used for bucket 
 // hashing and storing str references
 
-const UNUSED CSKMap *strheap;
+const CSKMap *strheap;
 
 // compare function for hashmap, from P3/dtsv
 int map_compare_function(void *id1, void *id2)
@@ -59,9 +59,6 @@ StrNode *strnode_helper(const char *str)
 char *str_malloc(char* str)
 {        
     char**res;
-    // initialize the hashmap if not already
-    strheap = HashCSKMap(100, 4.0, free);
-
     if(strheap == NULL)
     {
         fprintf(stderr, "Failure to create hashmap\n");
@@ -114,4 +111,15 @@ bool str_free(char *str)
         }
     }
     return ret;
+}
+
+int main()
+{
+    // initialize the hashmap if not already
+    strheap = HashCSKMap(100, 4.0, free);
+    if(strheap != NULL)
+    {
+        printf("strheap initialized!");
+    }
+    
 }
