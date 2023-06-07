@@ -1,5 +1,5 @@
-# 415
-## Work Done for CS415
+# 415 Operating Systems
+## Projects
 - P0 (Optional) - Hash Set ADT implementation
 - P1 - User Space Process Scheduler (Round Robin)
 - P2 - PThread Based Packet Driver
