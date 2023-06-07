@@ -6,7 +6,6 @@ CIS415 Project 4
 This is my own work
 */
 
-
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,12 +28,13 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 // define hashcsk map to be used for bucket 
 // hashing and storing str references
 
-const CSKMap *strheap;
+const CSKMap *strheap = NULL;
 
-void cleanup_strheap()
+void cleanup()
 {
     if(strheap != NULL)
-    {
+    {                
+        strheap->clear(strheap);
         strheap->destroy(strheap);
         strheap = NULL;
     }
@@ -86,36 +86,35 @@ char *str_malloc(char* str)
         strheap->put(strheap, str, new);
         return new->str;
     }
+    atexit(cleanup);
+
 }
 
 bool str_free(char *str)
 {
-    if(strheap == NULL)
-    {
-        return false;
-    }
+    pthread_mutex_lock(&mutex);
 
-    StrNode* existing = (StrNode*)strheap->get(strheap, (void *)str, NULL);
-
-    if(existing != NULL)
-    {
-        pthread_mutex_lock(&mutex);
-        existing->reference_count--;
-
-        if(existing->reference_count == 0)
+    if(strheap != NULL)
+    {        
+        StrNode* existing;
+        if(strheap -> get(strheap, str, (void **) &existing))
         {
-            strheap->remove(strheap, (void *)str);
-            pthread_mutex_unlock(&mutex);
-            pthread_mutex_destroy(&mutex);
-            free(existing->str);
-            free(existing);
+            existing->reference_count --;
+            // pthread_mutex_unlock(&mutex);
+ 
+            if(existing->reference_count == 0)
+            {
+                strheap->remove(strheap, str);
+                free(existing->str);
+                // free(existing);
+
+            }
         }
-        pthread_mutex_unlock(&mutex);
     }
-    return true;
+    pthread_mutex_unlock(&mutex);
+
+    atexit(cleanup);
+    return false;
+
 }
 
-void cleanup()
-{
-    cleanup_strheap();
-}
