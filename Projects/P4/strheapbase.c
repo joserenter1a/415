@@ -25,7 +25,7 @@ char *str_malloc(char *string) {
     char *p = strdup(string);
     if (p == NULL) {
         fprintf(stderr, "str_malloc() failure\n");
-	abort();
+	    abort();
     }
     return p;
 }
